@@ -1,0 +1,46 @@
+
+//*** Conecta Arduino con SuperCollider  ****///
+
+
+SerialPort.listDevices
+
+//Descargar el Quark de Arduino
+
+Quarks.update("arduino");
+Quarks.install("arduino");
+
+
+a = ArduinoSMS (SerialPort.devices[5], 115200);
+
+
+//función para recibir los valores 
+a.action = {|... msg| msg.postln}
+
+
+
+//Ejemplo Sonoro
+(
+SynthDef (\s2, {|temp 1, tds 100|
+	var t = temp.linlin (0, 40, 0, 4);
+	var c = tds.linlin (100, 2000, 100, 400); //MouseY.kr (100, 400);
+	var sig = SinOscFB.ar (c, t ,0.1);
+	sig = Decay.ar (Dust.ar (30), 0.1) * sig;
+	sig = AllpassL.ar (sig, 0.2, 0.4, 0.5);
+	sig = FreeVerb.ar (sig)* EnvGate.new;
+	Out.ar (0, sig!2)
+}).add;
+)
+
+(
+~s2 = Synth (\s2);
+a.action = {|... msg|
+	var tds = msg[0];
+	var temp = msg[1]/1000;
+
+	~s2.set (\temp, temp, \tds, tds);
+	[temp, tds].postln;
+}
+)
+
+//no olvides cerrar el Puerto Serial
+a.close 
